@@ -9,6 +9,17 @@ module.exports = {
      * Example:
      * await queryInterface.createTable('users', { id: Sequelize.INTEGER });
      */
+    await queryInterface.addConstraint('Posts', {
+      fields: ['userid'],
+      type: 'foreign key',
+      name: 'Posts_user_fkey',
+      references: {  
+        table: 'Users',
+        field: 'id'
+      },
+      onDelete: 'CASCADE',
+      onUpdate: 'CASCADE'
+    })
   },
 
   async down (queryInterface, Sequelize) {

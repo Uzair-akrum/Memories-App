@@ -1,15 +1,30 @@
-import express from 'express';
-import { createPost,getPost,getPostByUser,deletePost } from '../controllers/postController';
-import { createComment } from '../controllers/commentController';
-import {auth} from "../middlewares/auth"
+import express from "express";
+import {
+  createPost,
+  getPost,
+  getPostByUser,
+  deletePost,
+  search,
+  sharePost,
+  updatePost,
+  sharedBy,
+} from "../controllers/postController";
+import { likePost } from "../controllers/likeController";
+import { createComment, deleteComment } from "../controllers/commentController";
+import { auth } from "../middlewares/auth";
+
 const router = express.Router();
+router.get("/:id", getPost);
+router.get("/user/:id", getPostByUser);
+router.post("/search/:word", search);
+router.get("/sharedby/:id", sharedBy);
+router.use(auth);
+router.post("/", createPost);
+router.post("/comment", createComment);
+router.delete("/comment/:id", deleteComment);
+router.delete("/:id", deletePost);
+router.post("/like/:id", likePost);
+router.post("/share", sharePost);
+router.post("/:id", updatePost);
 
- router.post('/',auth,createPost);
- router.get('/:id',getPost);
- router.get('/user/:id',getPostByUser);
- router.post('/comment',auth,createComment);
- router.delete('/:id',deletePost);
-    
-
-
- export default router   ;
+export default router;

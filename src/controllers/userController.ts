@@ -1,115 +1,128 @@
-import { Response, RequestHandler } from "express";
+import { RequestHandler } from "express";
 import User from "../models/userModel";
- import bcrypt, { hash } from "bcryptjs";
- import generateToken from "../config/generateToken"
-  const saltround:number = 10;
+import bcrypt from "bcryptjs";
+import generateToken from "../config/generateToken";
+import response from "../utils/response";
+import Posts from "../models/postModel";
+import { IUser, IResponseLocals } from "../types/user";
+import { userInstance } from "../models/index";
+import hashed from "../config/hash";
 
-const getUser : RequestHandler = async (req, res): Promise<Response> => {
-  const id:string = req.params.id ;
-  try {
-    const user:object = await User.findByPk(id);
- 
-     return res.json(user);
-  } catch (err) {
-    return res.status(500).json({ error: "Something went wrong" });
-  }
-};
-
-const getAllUsers: RequestHandler = async (req, res): Promise< Response>  => {
-   try {
-    const users:object = await User.findAll({});
- 
-    return res.json(users);
-  } catch (err) {
-    return res.status(500).json({ error: "Something went wrong" });
-  }
-};
-const deleteUser: RequestHandler = async (req, res) : Promise< Response>  => {
-  const id:string = req.params.id;
+const getUser: RequestHandler = async (req, res) => {
+  const id: string = req.params.id;
 
   try {
-     await User.destroy({ where: { id: id } });
-    return res.json("Deleted");
+    const user = await userInstance.findUser(id);
+
+    return response(res, 201, "User Found", true, user, false);
   } catch (err) {
-     return res.status(500).json({ error: "Something went wrong" });
+
+    return response(res, 404, "No User Found!", false, null, err);
   }
 };
-const deleteAllUser: RequestHandler = async (req, res) : Promise< Response>  => {
+const getAllUsers: RequestHandler = async (req, res) => {
+  try {
+    const users = await User.findAll({});
+
+    return response(res, 201, "User Created", true, users, false);
+  } catch (err) {
+    return response(res, 500, "Unable to fetch Users!", false, null, true);
+  }
+};
+const deleteUser: RequestHandler = async (req, res) => {
+  const id: string = req.params.id;
+  const responseLocals: IResponseLocals = res.locals.data;
+
+  if (!responseLocals) throw new Error("User not Found!");
+  try {
+    await userInstance.deleteUser(id, responseLocals.user);
+    return response(res, 202, "Deleted!", true, null, false);
+  } catch (err) {
+    return response(res, 500, `${err.message}`, false, null, true);
+  }
+};
+const deleteAllUser: RequestHandler = async (req, res) => {
   try {
     await User.destroy({});
-    return res.json("Deleted All");
+    return response(res, 202, "Deleted All!", true, null, false);
   } catch (err) {
-    return res.status(500).json({ error: "Something went wrong" });
+    return response(res, 400, "Unable to Delete Users!", false, null, true);
   }
 };
-const createUser: RequestHandler = async (req, res) : Promise<any>  => {
-  const { username, email, password } = req.body;
+const createUser: RequestHandler = async (req, res) => {
+  const body: IUser = req.body;
 
-  bcrypt.hash(password, saltround, async (error: any, hash:string):Promise<Response> => {
- 
-    if (error) {
-       res.send({
-        success: false,
-        statusCode: 500,
-        message: "Getting error during the connection",
-      });
-
-      return;
-    } else {
-      try {  
-        const user:object = await User.create({ username, email, password: hash });
-
-        return res.json(user);
-      } catch (err) {
-        return res.status(500).json(err.message);
-      }
-    }
-  });
-};
-const updateUser: RequestHandler = async (req, res): Promise<Response> => {
- 
-  const { id }  = req.params ;
-  const { username }:{username:string} = req.body;
-   try {
-    await User.update({ username: username }, { where: { id: id } });
-    return res.json("Updated Successfully");
+  try {
+    const hashedPassword: string = await hashed(body.password, res);
+    body.password = hashedPassword;
+    const user = await userInstance.createUser(body);
+    return response(res, 201, "User Created!", true, user, false);
   } catch (err) {
-    return res.status(500).json({ error: "Something went wrong" });
+    return response(res, 400, err, false, null, true);
   }
 };
-const loginUser:RequestHandler = async (req, res): Promise<Response> => {
-   const {  email, password } = req.body;
-   console.log('login user')
- try{
-   const user =await User.findOne({where:{email:email}});
-   if(!user) throw new Error('User not Found')
-    let hash:string=user.dataValues.password;
+const updateUser: RequestHandler = async (req, res) => {
+  const body: IUser = req.body;
+  const { id } = req.params;
+  const responseLocals: IResponseLocals = res.locals.data;
+  if (!responseLocals) throw new Error("User not Found!");
+  try {
+    const hashedPassword: string = await hashed(req.body?.password, res);
+    body.password = hashedPassword;
 
-  return bcrypt.compare(password, hash, function(err, result) {
-       if (err) throw new Error("Password didnt Match")
+    const user = await userInstance.updateUser(body, id, responseLocals.user);
+
+    return response(res, 201, "Updated User!", true, user, false);
+  } catch (err) {
+    return response(res, 400, `${err}`, false, null, true);
+  }
+};
+const loginUser: RequestHandler = async (req, res) => {
+  const body: IUser = req.body;
+  const { email, password } = body;
+  try {
+    const user = await User.findOne({ where: { email: email } });
+    if (!user) throw new Error("User not Found");
+    let hash: string = user.dataValues.password;
+
+    return bcrypt.compare(password, hash, function (err, result) {
+      if (err) throw new Error("Password didnt Match");
 
       if (result) {
-        return   res.json({
-              message: 'Success',
-              statusCode: 200,
-                data: {token: generateToken(email)}
-          });
+        return response(
+          res,
+          200,
+          " Logged In!",
+          true,
+          { token: generateToken(email, user.dataValues.id) },
+          false
+        );
       } else {
-       return   res.json({
-              message: 'failed',
-              statusCode: 500,
-              data: err
-          });
-      }})
- } catch(err){
-return res.status(500).json(`${err}`)
-
- }
- 
-
-
-  
- };
+        return response(res, 400, "Unable to Log in!", true, null, false);
+      }
+    });
+  } catch (err) {
+    return response(res, 400, `${err}`, true, null, false);
+  }
+};
+const findByEmail: RequestHandler = async (req, res) => {
+  const { email } = req.params;
+  try {
+    const user = await userInstance.findbyEmail(email);
+    return response(res, 201, "User Found!", true, user, false);
+  } catch (err) {
+    return response(res, 400, `${err}`, false, null, true);
+  }
+};
+const findByUsername: RequestHandler = async (req, res) => {
+  const { name } = req.params;
+  try {
+    const user = await userInstance.findbyUsername(name);
+    return response(res, 201, "User Found!", true, user, false);
+  } catch (err) {
+    return response(res, 400, `${err}`, false, null, true);
+  }
+};
 export {
   createUser,
   getUser,
@@ -117,5 +130,7 @@ export {
   deleteUser,
   updateUser,
   deleteAllUser,
-  loginUser
+  loginUser,
+  findByEmail,
+  findByUsername,
 };

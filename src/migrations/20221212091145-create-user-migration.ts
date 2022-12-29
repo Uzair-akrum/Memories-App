@@ -1,30 +1,30 @@
 'use strict'
 module.exports = {
   up: async (queryInterface, DataTypes) => {
-    await queryInterface.createTable('posts', {
+    await queryInterface.createTable('Users', {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: DataTypes.INTEGER,
+        
       },
-       
-       
-      body: {
+     
+      username: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      
-         userid: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      onDelete: 'CASCADE',
-      references: {
-        model: 'Users',
-        key: 'id',
-        as: ' userid',
+      email: {
+        type: DataTypes.STRING,
+        allowNull: false,
       },
-    },
+      role: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      password: {
+        type: DataTypes.STRING,
+        allowNull: false,},
       createdAt: {
         allowNull: false,
         type: DataTypes.DATE,
@@ -34,8 +34,9 @@ module.exports = {
         type: DataTypes.DATE,
       },
     })
+    
   },
   down: async (queryInterface, DataTypes) => {
-    await queryInterface.dropTable('posts')
+    await queryInterface.dropTable('users')
   },
 }

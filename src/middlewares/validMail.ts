@@ -1,13 +1,18 @@
-import { RequestHandler, Request, Response, NextFunction } from "express";
-import response from "../config/response";
-import schema from "./joiSchema";
-
+import { RequestHandler } from "express";
+import response from "../utils/response";
+import userSchema from "./joiSchema";
+import { IUser } from "../types/user";
 const validate: RequestHandler = async (req, res, next): Promise<any> => {
-  console.log("validate");
-  const { username, email, password } = req.body;
+  if (req.method == "DELETE") {
+    next();
+    return;
+  }
 
-  try {
-    await schema.validateAsync({ username, email, password });
+  const body: IUser = req.body;
+  const { username, email, password } = body; 
+
+  try { 
+    await userSchema.validateAsync({ username, email, password });
 
     next();
   } catch (err) {

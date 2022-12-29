@@ -1,10 +1,12 @@
-
-interface  IUser{
-    id:number,
-    username:string,
-    email:string,
- 
-    
+interface IUser {
+  username: string;
+  email: string;
+  password: string;
 }
 
-export {IUser}
+interface IResponseLocals {
+  user: string;
+  id: number;
+}
+
+export { IUser, IResponseLocals };

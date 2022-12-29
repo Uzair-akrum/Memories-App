@@ -5,21 +5,24 @@ import {
   getAllUsers,
   deleteUser,
   updateUser,
-  deleteAllUser,
   loginUser,
+  findByEmail,
+  findByUsername,
 } from "../controllers/userController";
 import validate from "../middlewares/validMail";
 import { auth } from "../middlewares/auth";
 const router = express.Router();
 
 router.get("/", getAllUsers);
-router.post("/", validate, createUser);
-router.delete("/", deleteAllUser);
-
 router.get("/:id", getUser);
-router.delete("/:id", deleteUser);
-router.post("/login", validate, loginUser);
+router.get("/email/:email", findByEmail);
+router.get("/username/:name", findByUsername);
 
-router.post("/:id", validate, updateUser);
+router.use(validate);
+router.post("/", createUser); //validate
+router.post("/login", loginUser); //validate
+router.use(auth);
+router.delete("/:id", deleteUser); //auth
+router.post("/:id", updateUser); //auth//validate
 
 export default router;

@@ -1,27 +1,24 @@
-import jwt, { Secret, JwtPayload } from "jsonwebtoken";
-import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import { RequestHandler } from "express";
+import { IResponseLocals } from "../types/user";
 import dotenv from "dotenv";
-
+import response from "../utils/response";
 dotenv.config();
 
-// export interface CustomRequest extends Request {
-//  token: string | JwtPayload;
-// }
-
-export const auth = async (req: Request, res: Response, next: NextFunction) => {
+export const auth: RequestHandler = async (req, res, next) => {
   try {
-     const token = req
+    const token = req
       .header("Authorization")
       ?.replace("Bearer ", "")
       .slice(2, -1);
 
     if (!token) throw new Error();
 
-    const decoded = jwt.verify(token, process.env.JWTTOKEN);
-     res.locals = decoded;
+    const decoded: IResponseLocals = jwt.verify(token, process.env.JWTTOKEN);
+    res.locals = decoded;
 
     next();
   } catch (err) {
-    res.status(401).send("Please authenticate");
+    return response(res, 401, "Please Authenticate", false, null, true);
   }
 };
